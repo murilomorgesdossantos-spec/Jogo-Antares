@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Incidente em Antares - O Desafio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Special+Elite&display=swap');
+
+        :root {
+            /* Paleta Antares: Sépia, Escura, Opressiva */
+            --bg-color: #12100e;
+            --ui-bg: rgba(28, 24, 20, 0.98);
+            --text-color: #e8e0d5;
+            --accent-ghost: #a0d8ef; /* Azul espectral desbotado */
+            --accent-gold: #c7b278; /* Ouro envelhecido */
+            --accent-danger: #8a2be2; /* Roxo da morte/mistério */
+            --accent-alert: #c0392b; /* Vermelho sangue */
+            --guard-color: #556b2f; /* Verde oliva militar */
+            --paper-bg: #f3e9d2;
+            --ink-color: #2c241b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Lora', serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0a0806;
+        }
+
+        /* Efeito de Vinheta (Bordas escuras) */
+        #game-container::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.85) 100%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* Efeito de Granulação (Noise) */
+        #game-container::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.08;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        canvas {
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+            border-radius: 2px;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* UI Layers */
+        .ui-layer {
+            position: absolute;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        /* HUD */
+        #hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        #location-tag {
+            font-family: 'Special Elite', cursive; /* Fonte estilo máquina de escrever */
+            font-size: 1.8rem;
+            color: var(--text-color);
+            text-shadow: 2px 2px 0px #000;
+            border-left: 4px double var(--accent-gold);
+            padding-left: 15px;
+            letter-spacing: 1px;
+            background: rgba(0,0,0,0.4);
+            padding-right: 10px;
+        }
+
+        #progress-container {
+            background: rgba(20, 15, 10, 0.8);
+            border: 1px solid var(--accent-gold);
+            padding: 10px 20px;
+            border-radius: 2px;
+            text-align: right;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
+        }
+
+        #progress-bar {
+            width: 200px;
+            height: 8px;
+            background: #2c241b;
+            border: 1px solid #444;
+            border-radius: 0;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        #progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent-gold);
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+
+        /* Dialogues */
+        #dialogue-box, #quiz-box {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            background: var(--ui-bg);
+            border: 1px double var(--accent-gold); /* Borda dupla elegante */
+            padding: 30px;
+            display: none;
+            pointer-events: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+            background-image: linear-gradient(rgba(28, 24, 20, 0.95), rgba(28, 24, 20, 0.95)), url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23333' fill-opacity='0.2' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+
+        #dialogue-box { border-left: 6px solid var(--accent-ghost); }
+        #quiz-box { border-left: 6px solid var(--accent-alert); top: 50%; bottom: auto; transform: translate(-50%, -50%); }
+
+        .box-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+
+        .text-content {
+            font-size: 1.15rem;
+            line-height: 1.6;
+            color: #dcd0c0;
+            margin-bottom: 25px;
+            font-family: 'Lora', serif;
+        }
+
+        #quiz-timer-bar {
+            width: 100%;
+            height: 4px;
+            background: #222;
+            margin-bottom: 15px;
+            display: none;
+            border: 1px solid #444;
+        }
+        
+        #quiz-timer-fill {
+            width: 100%;
+            height: 100%;
+            background: var(--accent-alert);
+            transition: width 0.1s linear;
+        }
+
+        /* Buttons */
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 12px 25px;
+            font-family: 'Cinzel', serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        button:hover { 
+            background: rgba(255,255,255,0.05); 
+            border-color: var(--accent-gold); 
+            color: var(--accent-gold);
+            box-shadow: 0 0 10px rgba(199, 178, 120, 0.2);
+        }
+        
+        button.primary { border-color: var(--accent-ghost); color: var(--accent-ghost); }
+        button.primary:hover { background: var(--accent-ghost); color: #000; box-shadow: 0 0 15px var(--accent-ghost); }
+        
+        button.quiz-option { width: 100%; margin-bottom: 8px; border-color: #444; }
+        button.quiz-option:hover { border-color: var(--accent-alert); color: #fff; background: rgba(192, 57, 43, 0.1); }
+
+        /* Full Screens */
+        .full-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #1a1612 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 20;
+            padding: 20px;
+            transition: opacity 0.8s;
+        }
+        
+        #transition-screen { background: #000; z-index: 50; pointer-events: none; opacity: 0; }
+        
+        h1 { 
+            font-family: 'Cinzel', serif; 
+            font-size: 3.5rem; 
+            color: var(--accent-ghost); 
+            margin-bottom: 15px; 
+            text-shadow: 0 0 20px rgba(160, 216, 239, 0.3);
+            letter-spacing: 5px;
+        }
+        
+        h2 { font-family: 'Cinzel', serif; font-size: 2.2rem; color: var(--accent-alert); margin-bottom: 20px; letter-spacing: 3px; }
+
+        /* Mobile Action Btn */
+        #action-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(199, 178, 120, 0.1);
+            border: 2px solid var(--accent-gold);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            color: var(--accent-gold);
+            pointer-events: auto;
+            z-index: 15;
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(199, 178, 120, 0.3);
+        }
+        
+        /* Feedback */
+        #notification {
+            position: absolute;
+            top: 25%;
+            width: 100%;
+            text-align: center;
+            font-family: 'Special Elite', cursive;
+            font-size: 1.8rem;
+            color: var(--accent-gold);
+            text-shadow: 2px 2px 0 #000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 100;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 0;
+            letter-spacing: 2px;
+        }
+
+        /* Character Creation Styles */
+        #character-creation-screen {
+            display: none; 
+            opacity: 0;
+            flex-direction: row; 
+            gap: 40px; /* Ajustado para 3 colunas */
+            background: radial-gradient(circle, #221c18 0%, #000 100%);
+            align-items: center;
+            justify-content: space-between; /* Espaça os 3 containers */
+            padding: 0 80px; /* Espaçamento lateral */
+            box-sizing: border-box;
+        }
+
+        #char-preview-container {
+            flex: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            height: 100%;
+        }
+
+        #char-preview-canvas {
+            border: 4px double var(--accent-gold);
+            background: rgba(20, 15, 10, 0.5);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        /* Painel de Identidade (Direita) */
+        #char-controls-container {
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-start; 
+            text-align: left;
+            max-width: 300px;
+            background: rgba(20,15,10,0.8);
+            padding: 30px;
+            border: 1px solid #444;
+        }
+
+        /* Painel de Enigma (Esquerda) */
+        #char-riddle-container {
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-start; 
+            text-align: left;
+            max-width: 300px;
+            background: rgba(20,15,10,0.8);
+            padding: 30px;
+            border: 1px solid #444;
+            /* Corresponde visualmente ao painel da direita */
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .control-label {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            margin-bottom: 10px;
+            display: block;
+            font-size: 1.1rem;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #555;
+            cursor: pointer;
+            transition: transform 0.2s;
+            padding: 0;
+        }
+
+        .color-btn:hover, .color-btn.selected {
+            transform: scale(1.2);
+            border-color: #fff;
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        /* Riddle Specifics */
+        .riddle-option {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #555;
+            color: #aaa;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 8px;
+            text-align: left;
+            cursor: pointer;
+            font-family: 'Lora', serif;
+            transition: all 0.2s;
+        }
+        .riddle-option:hover {
+            border-color: var(--accent-gold);
+            color: #fff;
+        }
+        .riddle-option.correct {
+            border-color: #2ecc71;
+            color: #2ecc71;
+        }
+        .riddle-option.wrong {
+            border-color: #c0392b;
+            color: #c0392b;
+        }
+
+        #cuia-reward {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            width: 100%;
+        }
+        #cuia-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid var(--accent-gold);
+            margin: 0 auto 10px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #cuia-icon:hover, #cuia-icon.equipped {
+            background: rgba(199, 178, 120, 0.3);
+            box-shadow: 0 0 15px var(--accent-gold);
+        }
+
+        /* Game Over Screen */
+        #game-over-screen {
+            background: radial-gradient(circle, #2c0000 0%, #000 100%);
+            color: var(--accent-alert);
+            display: none;
+            opacity: 0;
+        }
+
+        /* Newspaper Ending Screen - Custom Style */
+        #ending-screen {
+            background-color: var(--bg-color);
+            color: var(--ink-color);
+            display: none;
+            opacity: 0;
+            padding: 0;
+        }
+
+        .newspaper-container {
+            width: 90%;
+            max-width: 800px;
+            padding: 40px;
+            box-sizing: border-box;
+            text-align: center;
+            border: 1px solid #aaa;
+            background: var(--paper-bg);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            position: relative;
+            transform: rotate(-1deg); /* Slight tilt for realism */
+        }
+        
+        .newspaper-container::before {
+             content: "";
+             position: absolute;
+             top: 0; left: 0; width: 100%; height: 100%;
+             background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z'/%3E%3C/g%3E%3C/svg%3E");
+             pointer-events: none;
+        }
+
+        .masthead {
+            font-family: 'Cinzel', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-bottom: 4px double var(--ink-color);
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+            color: var(--ink-color);
+        }
+
+        .edition-line {
+            border-bottom: 1px solid var(--ink-color);
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            font-style: italic;
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            color: #444;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .headline-main {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 30px;
+            font-family: 'Cinzel', serif;
+            color: #1a1a1a;
+        }
+
+        #newspaper-content {
+            text-align: center;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 40px;
+        }
+        
+        #newspaper-content li::before {
+            color: var(--ink-color);
+        }
+
+        .restart-btn-news {
+            padding: 12px 40px;
+            background: transparent;
+            border: 2px solid var(--ink-color);
+            color: var(--ink-color);
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+        }
+        
+        /* Escape Mode Screens */
+        #escape-intro-screen, #escape-fail-screen {
+            display: none; 
+            background: rgba(10, 0, 0, 0.95);
+            color: #fff;
+        }
+        
+        #countdown-screen {
+            display: none;
+            background: transparent;
+            font-size: 8rem;
+            color: var(--accent-alert);
+            font-family: 'Cinzel', serif;
+            text-shadow: 0 0 20px var(--accent-alert);
+            pointer-events: none;
+            z-index: 60;
+        }
+        
+        @media (max-width: 768px) {
+            #character-creation-screen { flex-direction: column; gap: 20px; padding: 50px 20px 20px 20px; overflow-y: auto; }
+            #char-preview-container { height: 300px; justify-content: center; }
+            #char-controls-container, #char-riddle-container { width: 100%; max-width: 100%; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Transition Overlay -->
+    <div id="transition-screen"></div>
+
+    <!-- Intro -->
+    <div id="intro-screen" class="full-screen">
+        <h1>Incidente em Antares</h1>
+        <p style="max-width: 600px; color: #bbb; margin-bottom: 30px; font-size: 1.1rem; line-height: 1.6;">
+            A neblina cobre a cidade. A greve parou tudo. Nem a morte é obedecida. <br><br>
+            Você é um jornalista investigativo. Os mortos voltaram para expor a podridão moral, mas suas provas estão guardadas por cães de guarda da ditadura.
+        </p>
+        <button class="primary" onclick="startGame()">Iniciar Investigação</button>
+    </div>
+
+    <!-- Character Creation Screen -->
+    <div id="character-creation-screen" class="full-screen">
+        <!-- NEW: Riddle Container (Left) -->
+        <div id="char-riddle-container">
+            <h2 style="margin-top: 0; font-size: 1.5rem; color: var(--accent-gold);">ENIGMA (opcional)</h2>
+            <p style="color: #bbb; margin-bottom: 15px; font-size: 0.95rem;">Gosta de tomar chimarrão:</p>
+            
+            <div id="riddle-options-list">
+                <!-- Filled by JS -->
+            </div>
+
+            <div id="cuia-reward">
+                <p style="color: #2ecc71; margin-bottom: 10px;">Correto!</p>
+                <div id="cuia-icon" onclick="toggleCuia()" title="Equipar Cuia">
+                    <!-- Simple SVG for Cuia -->
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 15 C10 25 15 35 20 35 C25 35 30 25 30 15" stroke="#8d5524" stroke-width="3" fill="#5d4037"/>
+                        <line x1="20" y1="35" x2="25" y2="5" stroke="#aaa" stroke-width="2" />
+                    </svg>
+                </div>
+                <span style="font-size: 0.8rem; color: #aaa;">Clique para equipar a cuia</span>
+            </div>
+        </div>
+
+        <div id="char-preview-container">
+             <!-- Increased canvas size for bigger puppet -->
+             <canvas id="char-preview-canvas" width="400" height="600"></canvas>
+        </div>
+        
+        <div id="char-controls-container">
+            <h2 style="margin-top: 0; font-size: 1.8rem; color: var(--accent-gold);">Identidade</h2>
+            <p style="color: #bbb; margin-bottom: 20px; font-size: 0.9rem;">Para se infiltrar, escolha sua aparência.</p>
+            
+            <div class="control-group">
+                <span class="control-label">Pele</span>
+                <div class="color-options" id="opt-skin">
+                    <!-- JS fills this -->
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <span class="control-label">Sobretudo</span>
+                <div class="color-options" id="opt-coat"></div>
+            </div>
+            
+            <div class="control-group">
+                <span class="control-label">Chapéu</span>
+                <div class="color-options" id="opt-hat"></div>
+            </div>
+
+            <div class="control-group">
+                <span class="control-label">Cachecol</span>
+                <div class="color-options" id="opt-scarf"></div>
+            </div>
+
+            <button class="primary" style="width: 100%; margin-top: 10px;" onclick="finishCreation()">Pronto</button>
+        </div>
+    </div>
+
+    <!-- Tutorial Screen -->
+    <div id="tutorial-screen" class="full-screen" style="display: none; opacity: 0;">
+        <h2 style="color: var(--accent-gold);">Dossiê da Missão</h2>
+        <div style="text-align: left; max-width: 500px; color: #dcd0c0; margin-bottom: 30px; line-height: 1.8; font-size: 1.1rem; background: rgba(0,0,0,0.3); padding: 20px; border: 1px solid #444;">
+            <p><strong>OBJETIVO:</strong> Colete as 7 provas ocultas para expor a verdade.</p>
+            <p><strong>INSTRUÇÕES DE CAMPO:</strong></p>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 10px;">🏃 <strong>Movimento:</strong> Use as <span style="color: var(--accent-gold);">Setas</span> ou <span style="color: var(--accent-gold);">WASD</span> para explorar.</li>
+                <li style="margin-bottom: 10px;">🗣️ <strong>Interagir:</strong> Pressione <span style="color: var(--accent-gold);">'E'</span> para falar com fantasmas e investigar pistas.</li>
+            </ul>
+            <p style="color: var(--accent-alert); font-weight: bold; margin-top: 15px;">⚠️ AVISO: Jamais tente interagir duas vezes com o mesmo guarda..</p>
+        </div>
+        <div style="color: #aaa; font-style: italic; animation: pulse 2s infinite;">Pressione qualquer tecla de movimento para começar...</div>
+    </div>
+
+    <!-- Escape Intro Screen -->
+    <div id="escape-intro-screen" class="full-screen">
+        <h2 style="color: var(--accent-alert); font-size: 2.5rem;">FUGA IMEDIATA</h2>
+        <p style="max-width: 600px; color: #ddd; margin-bottom: 30px; font-size: 1.2rem; line-height: 1.6;">
+            Você conseguiu as provas, mas a elite descobriu!<br><br>
+            Agora você deverá fugir da elite para que suas evidências não sejam coletadas.<br>
+            Corra até a <strong>Imprensa</strong> antes que eles te alcancem!
+        </p>
+        <button class="primary" style="border-color: var(--accent-alert); color: var(--accent-alert);" onclick="startEscapeSequence()">Começar Fuga</button>
+    </div>
+
+    <!-- Escape Fail Screen -->
+    <div id="escape-fail-screen" class="full-screen">
+        <h2 style="color: var(--accent-gold); font-size: 2.2rem;">CENSURADO?</h2>
+        <p id="escape-fail-msg" style="max-width: 600px; color: #ddd; margin-bottom: 30px; font-size: 1.2rem; line-height: 1.6;">
+            <!-- JS fills this -->
+        </p>
+        <button class="primary" onclick="startEscapeSequence()">Voltar ao Portal</button>
+    </div>
+
+    <!-- Countdown Screen -->
+    <div id="countdown-screen" class="full-screen">3</div>
+
+    <!-- Mission Fail (Soft Fail) -->
+    <div id="fail-screen" class="full-screen" style="display: none; opacity: 0;">
+        <h2>Acesso Negado</h2>
+        <p style="color: #aaa; margin-bottom: 30px;">O guarda percebeu sua hesitação. Você foi expulso do local.</p>
+        <button class="primary" onclick="retryMission()">Tentar Novamente</button>
+    </div>
+    
+    <!-- Punishment Intro -->
+    <div id="punish-screen" class="full-screen" style="display: none; opacity: 0; background: rgba(30, 0, 0, 0.95);">
+        <h2 style="color: var(--accent-alert);">Interrogatório</h2>
+        <p style="color: #fff; margin-bottom: 30px;">Você tentou enganar a autoridade. Agora enfrentará o julgamento.</p>
+        <p style="color: var(--accent-gold); margin-bottom: 10px; font-size: 0.9rem; letter-spacing: 2px;">3 PERGUNTAS. 20 SEGUNDOS CADA.</p>
+        <p style="color: var(--accent-alert); margin-bottom: 30px; font-weight: bold;">ERROS SÃO FATAIS.</p>
+        <button class="primary" style="border-color: var(--accent-alert); color: var(--accent-alert);" onclick="startPunishmentAction()">Aceitar Destino</button>
+    </div>
+
+    <!-- Hard Game Over Screen -->
+    <div id="game-over-screen" class="full-screen">
+        <h1>FIM DE JOGO</h1>
+        <p style="color: #ddd; max-width: 600px; margin-bottom: 30px;">
+            A censura venceu. Você foi silenciado e a verdade enterrada para sempre sob as sete palmas de terra.
+        </p>
+        <button class="primary" onclick="location.reload()" style="border-color: var(--accent-alert); color: var(--accent-alert);">Tentar Novamente</button>
+    </div>
+
+    <!-- Victory Screen (Newspaper Style) -->
+    <div id="ending-screen" class="full-screen">
+        <div class="newspaper-container">
+            <div class="masthead">A VERDADE IMPRESSA</div>
+            <div class="edition-line">
+                <span>Edição Extraordinária!</span>
+                <span>•</span>
+                <span>Antares, 13 de Dezembro de 1963</span>
+            </div>
+            <div class="headline-main">O CERCO ACABOU: A VERDADE PREVALECEU</div>
+            
+            <div id="newspaper-content">
+                <!-- JS Content -->
+            </div>
+            
+            <button class="restart-btn-news" onclick="location.reload()">Nova Edição</button>
+        </div>
+    </div>
+
+    <!-- UI -->
+    <div class="ui-layer">
+        <div id="hud-top">
+            <div id="location-tag">Praça Matriz</div>
+            <div id="progress-container">
+                <div style="font-family:'Special Elite'; color:var(--accent-gold); font-size:0.8rem; letter-spacing: 1px;">Manchete</div>
+                <div id="progress-bar"><div id="progress-fill"></div></div>
+            </div>
+        </div>
+
+        <div id="notification"></div>
+
+        <!-- Ghost Dialogue -->
+        <div id="dialogue-box">
+            <div class="box-title" id="d-name" style="color: var(--accent-ghost)">Fantasma</div>
+            <div class="text-content" id="d-text">...</div>
+            <div class="btn-container" id="d-buttons"></div>
+        </div>
+
+        <!-- Guard Quiz -->
+        <div id="quiz-box">
+            <div class="box-title" style="color: var(--accent-alert)" id="quiz-title">Guarda da Censura</div>
+            <div id="quiz-timer-bar"><div id="quiz-timer-fill"></div></div>
+            <div class="text-content" id="q-text">Para passar, responda:</div>
+            <div class="btn-container" id="q-options" style="flex-direction: column; gap: 10px;"></div>
+        </div>
+    </div>
+
+    <div id="action-btn">!</div>
+</div>
+
+<script>
+    /* --- ENGINE SETUP --- */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // UI Elements
+    const ui = {
+        dialogue: document.getElementById('dialogue-box'),
+        dName: document.getElementById('d-name'),
+        dText: document.getElementById('d-text'),
+        dBtns: document.getElementById('d-buttons'),
+        quiz: document.getElementById('quiz-box'),
+        qTitle: document.getElementById('quiz-title'),
+        qText: document.getElementById('q-text'),
+        qOpts: document.getElementById('q-options'),
+        qTimerBar: document.getElementById('quiz-timer-bar'),
+        qTimerFill: document.getElementById('quiz-timer-fill'),
+        transition: document.getElementById('transition-screen'),
+        intro: document.getElementById('intro-screen'),
+        charCreation: document.getElementById('character-creation-screen'), 
+        riddleList: document.getElementById('riddle-options-list'), // NEW
+        cuiaReward: document.getElementById('cuia-reward'), // NEW
+        cuiaIcon: document.getElementById('cuia-icon'), // NEW
+        tutorial: document.getElementById('tutorial-screen'),
+        escapeIntro: document.getElementById('escape-intro-screen'), 
+        escapeFail: document.getElementById('escape-fail-screen'), 
+        escapeFailMsg: document.getElementById('escape-fail-msg'), 
+        countdown: document.getElementById('countdown-screen'), 
+        fail: document.getElementById('fail-screen'),
+        punish: document.getElementById('punish-screen'),
+        gameOver: document.getElementById('game-over-screen'),
+        ending: document.getElementById('ending-screen'),
+        locTag: document.getElementById('location-tag'),
+        notif: document.getElementById('notification'),
+        progress: document.getElementById('progress-fill'),
+        actionBtn: document.getElementById('action-btn')
+    };
+
+    let width, height;
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    /* --- GAME STATE --- */
+    const gameState = {
+        scene: 'hub', 
+        running: false,
+        evidence: 0,
+        totalEvidence: 7,
+        collectedSnippets: [],
+        currentMission: null, 
+        player: { x: 0, y: 0, speed: 4, velX: 0, velY: 0 },
+        
+        // Appearance Config
+        playerAppearance: {
+            skin: '#dcb',
+            coat: '#6d5e48',
+            hat: '#2c241b',
+            scarf: '#3e352f',
+            cuia: false // NEW
+        },
+
+        camera: { x: 0, y: 0 },
+        questionDeck: [],
+        footprints: [], 
+        lastFootprintTime: 0, 
+        
+        // Interrogation State
+        interrogationStep: 0, 
+        interrogationTimer: 0,
+        interrogationMaxTime: 20,
+        interrogationActive: false,
+
+        // Escape Phase
+        portalActive: false,
+        escapeLives: 3,
+        eliteSpawnTimer: null // NEW: Track elite spawn timer to clear it
+    };
+
+    const keys = {};
+
+    /* --- DATA --- */
+    const ghosts = [
+        { id: 0, name: "Dona Quitéria", type: 'quiteria', desc: "A matriarca que sabe demais.", solved: false },
+        { id: 1, name: "Dr. Cícero", type: 'cicero', desc: "O advogado das causas perdidas.", solved: false },
+        { id: 2, name: "Barcelona", type: 'barcelona', desc: "O sapateiro anarquista.", solved: false },
+        { id: 3, name: "Pudim", type: 'pudim', desc: "O bêbado que viu tudo.", solved: false },
+        { id: 4, name: "João Paz", type: 'joao', desc: "O jovem inocente.", solved: false },
+        { id: 5, name: "Menandro", type: 'menandro', desc: "O pianista melancólico.", solved: false },
+        { id: 6, name: "Erotildes", type: 'erotildes', desc: "A dama da noite.", solved: false }
+    ];
+
+    const masterQuestions = [
+        { q: "Qual o evento que paralisa a cidade no início?", a: "Uma greve geral", opts: ["Um furacão", "Uma greve geral", "Uma epidemia", "Uma guerra civil"] },
+        { q: "Qual dia da semana o incidente ocorre?", a: "Sexta-feira 13", opts: ["Dia de Finados", "Natal", "Sexta-feira 13", "Domingo de Páscoa"] },
+        { q: "Quem tenta censurar a verdade em Antares?", a: "As autoridades locais", opts: ["Os jornalistas", "As autoridades locais", "Os coveiros", "Os professores"] },
+        { q: "O que os mortos reivindicam na praça?", a: "O enterro digno", opts: ["Vingança", "Dinheiro", "O enterro digno", "Poder político"] },
+        { q: "Qual o nome do jornal local?", a: "A Voz de Antares", opts: ["O Grito", "A Voz de Antares", "Gazeta do Sul", "Diário Oficial"] },
+        { q: "O que simboliza a podridão dos corpos?", a: "A corrupção moral", opts: ["A falta de higiene", "A corrupção moral", "O clima tropical", "A falta de médicos"] },
+        { q: "Quem é o sapateiro anarquista?", a: "Barcelona", opts: ["Madri", "Lisboa", "Barcelona", "Valência"] },
+        { q: "Qual a profissão de Cícero Branco?", a: "Advogado", opts: ["Médico", "Advogado", "Prefeito", "Padre"] },
+        { q: "Quem é a matriarca da família Campolargo?", a: "Quitéria", opts: ["Erotildes", "Ana", "Quitéria", "Maria"] },
+        { q: "O que Pudim de Cachaça mais gostava?", a: "Bebida", opts: ["Poder", "Bebida", "Dinheiro", "Livros"] },
+        { q: "Como morreu o pianista Menandro?", a: "Suicídio", opts: ["Assassinato", "Suicídio", "Acidente", "Velhice"] },
+        { q: "Quem era Erotildes?", a: "Uma prostituta", opts: ["Uma freira", "Uma professora", "Uma prostituta", "Uma médica"] },
+        { q: "Qual o nome do Coronel que manda na cidade?", a: "Tibúrcio", opts: ["Odorico", "Tibúrcio", "Aureliano", "Bentinho"] },
+        { q: "O que acontece no final com os mortos?", a: "Voltam para a cova", opts: ["Dominam a cidade", "Voltam para a cova", "Viram prefeitos", "Desaparecem no ar"] },
+        { q: "Qual o gênero literário da obra?", a: "Realismo Fantástico", opts: ["Romantismo", "Realismo Fantástico", "Barroco", "Parnasianismo"] },
+        { q: "Quem escreveu Incidente em Antares?", a: "Erico Verissimo", opts: ["Machado de Assis", "Jorge Amado", "Erico Verissimo", "Graciliano Ramos"] },
+        { q: "O livro é uma crítica a qual regime?", a: "Ditadura Militar", opts: ["Império", "Ditadura Militar", "República Velha", "Era Vargas"] },
+        { q: "Qual animal é associado ao brasão de Antares?", a: "Um touro", opts: ["Uma águia", "Um leão", "Um touro", "Uma cobra"] },
+        { q: "Quantos mortos se levantam?", a: "Sete", opts: ["Treze", "Sete", "Cinco", "Doze"] },
+        { q: "O que os coveiros fizeram?", a: "Entraram em greve", opts: ["Morreram", "Fugiram", "Entraram em greve", "Foram presos"] },
+        { q: "Onde os mortos se reúnem?", a: "No coreto da praça", opts: ["Na prefeitura", "No coreto da praça", "Na igreja", "No cemitério"] },
+        { q: "O que os vivos sentem perto dos mortos?", a: "Mau cheiro", opts: ["Frio", "Mau cheiro", "Calor", "Alegria"] },
+        { q: "Qual o nome da família rival dos Campolargo?", a: "Vacariano", opts: ["Silva", "Vacariano", "Souza", "Bragança"] },
+        { q: "O que João Paz defendia?", a: "Direitos trabalhistas", opts: ["A monarquia", "Direitos trabalhistas", "O coronelismo", "A igreja"] },
+        { q: "O livro foi publicado em qual década?", a: "Anos 70", opts: ["Anos 50", "Anos 70", "Anos 90", "Anos 30"] },
+        { q: "O que é 'Abertura Política'?", a: "Fim gradual da ditadura", opts: ["Início da ditadura", "Fim gradual da ditadura", "Golpe militar", "Censura total"] },
+        { q: "Qual é o efeito do 'Realismo Fantástico'?", a: "O absurdo parece normal", opts: ["Tudo é sonho", "O absurdo parece normal", "Apenas fatos reais", "Terror puro"] },
+        { q: "O que significa 'status quo'?", a: "O estado atual das coisas", opts: ["Uma lei antiga", "O estado atual das coisas", "Uma revolução", "Um tipo de imposto"] },
+        { q: "O que é uma Oligarquia?", a: "Governo de poucos", opts: ["Governo do povo", "Governo de poucos", "Sem governo", "Governo religioso"] },
+        { q: "Qual o papel da imprensa na ditadura?", a: "Sofria censura", opts: ["Era totalmente livre", "Sofria censura", "Governava o país", "Não existia"] },
+        { q: "O que é hipocrisia social?", a: "Fingir virtudes que não tem", opts: ["Ser honesto", "Fingir virtudes que não tem", "Ajudar os pobres", "Ser rico"] },
+        { q: "O que sempre cai mas nunca se machuca?", a: "A chuva", opts: ["O bêbado", "A chuva", "A noite", "O governo"] },
+        { q: "O que tem cidades, mas não casas?", a: "O mapa", opts: ["O deserto", "O mapa", "O oceano", "O sonho"] },
+        { q: "Quanto mais você tira, maior eu fico.", a: "Um buraco", opts: ["A dívida", "Um buraco", "O medo", "A fome"] },
+        { q: "O que é, o que é: Tem capa mas não lê?", a: "O livro", opts: ["O herói", "O livro", "O guarda", "O segredo"] },
+        { q: "Se ontem fosse amanhã, hoje seria sexta. Que dia é hoje?", a: "Domingo", opts: ["Sábado", "Domingo", "Quarta", "Segunda"] },
+        { q: "O que passa pela água e não se molha?", a: "A sombra", opts: ["O peixe", "A sombra", "A pedra", "O barco"] },
+        { q: "O que é meu, mas meus amigos usam mais que eu?", a: "Meu nome", opts: ["Meu dinheiro", "Meu nome", "Minha casa", "Minha paciência"] },
+        { q: "Quem faz não quer, quem compra não usa, quem usa não vê.", a: "O caixão", opts: ["O veneno", "O caixão", "O jornal", "A mentira"] },
+        { q: "Tenho dentes mas não mordo.", a: "O pente", opts: ["O cachorro", "O pente", "A serra", "O alho"] },
+        { q: "O que sobe quando a chuva desce?", a: "O guarda-chuva", opts: ["O rio", "O guarda-chuva", "A poeira", "O sol"] },
+        { q: "Quem era o médico que atestava os óbitos?", a: "Dr. Lázaro", opts: ["Dr. Cícero", "Dr. Lázaro", "Dr. House", "Dr. Estranho"] },
+        { q: "Qual a cor da bandeira de Antares?", a: "Não é mencionada", opts: ["Verde e Amarelo", "Vermelha", "Não é mencionada", "Azul e Branco"] },
+        { q: "O Incidente em Antares é a segunda parte de qual obra?", a: "É um livro único", opts: ["O Tempo e o Vento", "É um livro único", "Sagarana", "Vidas Secas"] },
+        { q: "O que a mãe de Quitéria fazia?", a: "Rezava muito", opts: ["Bebia", "Rezava muito", "Dançava", "Escrevia"] },
+        { q: "Qual a principal atividade econômica de Antares?", a: "Pecuária", opts: ["Indústria", "Pecuária", "Turismo", "Tecnologia"] },
+        { q: "Onde Erico Verissimo nasceu?", a: "Cruz Alta", opts: ["Porto Alegre", "Cruz Alta", "Antares", "Pelotas"] },
+        { q: "O que acontece com os segredos revelados?", a: "São esquecidos", opts: ["Mudam o mundo", "São esquecidos", "Geram prisões", "Viraram filme"] },
+        { q: "Quem controlava a polícia em Antares?", a: "O Delegado", opts: ["O Padre", "O Delegado", "O Juiz", "O Jornalista"] },
+        { q: "Por que Barcelona tinha esse nome?", a: "Simpatia pela Espanha", opts: ["Nasceu lá", "Simpatia pela Espanha", "Era jogador", "Gostava do time"] },
+        { q: "O que o vento traz em Antares?", a: "O cheiro da morte", opts: ["A chuva", "O cheiro da morte", "As notícias", "As flores"] },
+        { q: "Qual o nome da praça central?", a: "Praça da Matriz", opts: ["Praça da Sé", "Praça da Matriz", "Praça dos Mortos", "Praça da Liberdade"] },
+        { q: "O que é um 'coronel' na política brasileira?", a: "Líder político local", opts: ["Patente militar", "Líder político local", "Dono de bar", "Um juiz"] },
+        { q: "O que significa 'voto de cabresto'?", a: "Voto controlado", opts: ["Voto livre", "Voto controlado", "Voto secreto", "Voto feminino"] },
+        { q: "O que a greve dos coveiros expôs?", a: "A fragilidade da ordem", opts: ["A força dos mortos", "A fragilidade da ordem", "A falta de madeira", "O excesso de chuva"] },
+        { q: "Quem tentou negociar com os mortos?", a: "Ninguém teve coragem", opts: ["O Prefeito", "O Padre", "Ninguém teve coragem", "O Médico"] },
+        { q: "Qual a relação entre Quitéria e Cícero?", a: "Eram da mesma elite", opts: ["Eram casados", "Eram da mesma elite", "Eram inimigos", "Eram irmãos"] },
+        { q: "O que Erotildes revelou?", a: "Hipocrisia sexual", opts: ["Crimes financeiros", "Hipocrisia sexual", "Segredos militares", "Receitas culinárias"] },
+        { q: "O que João Paz revelou?", a: "Tortura policial", opts: ["Roubo de gado", "Tortura policial", "Traição amorosa", "Fraude eleitoral"] },
+        { q: "Qual o tom do narrador do livro?", a: "Irônico", opts: ["Triste", "Irônico", "Romântico", "Jornalístico"] },
+        { q: "O que a névoa representa no jogo?", a: "O mistério", opts: ["A poluição", "O mistério", "O frio", "A fumaça"] },
+        { q: "Complete: 'A verdade é filha do...'", a: "Tempo", opts: ["Medo", "Tempo", "Homem", "Dinheiro"] },
+        { q: "O que não pode ser enterrado?", a: "A verdade", opts: ["O corpo", "A verdade", "O dinheiro", "O ouro"] },
+        { q: "Tecnicamente, por que os mortos não foram enterrados?", a: "Greve dos coveiros", opts: ["O cemitério estava lotado", "Greve dos coveiros", "A terra estava muito dura", "Ordem do prefeito"] },
+        { q: "Quem detém o VERDADEIRO poder em Antares?", a: "A Oligarquia", opts: ["O Prefeito Eleito", "A Oligarquia", "Os Mortos", "O Povo"] },
+        { q: "Se a greve dos coveiros parou a cidade, isso prova que:", a: "Trabalhadores essenciais têm poder", opts: ["Ninguém gosta de trabalhar", "Trabalhadores essenciais têm poder", "A morte pode esperar", "O prefeito é fraco"] },
+        { q: "No final, o 'Incidente' resultou em quê?", a: "Manutenção do status quo", opts: ["Revolução total", "Manutenção do status quo", "Prisão do Coronel", "Canonização dos mortos"] },
+        { q: "O que mais assustava os vivos em relação aos mortos?", a: "A verdade que eles sabiam", opts: ["O cheiro podre", "A aparência feia", "A verdade que eles sabiam", "O medo de fantasmas"] },
+        { q: "Se a censura calasse os mortos, eles teriam:", a: "Morrido socialmente de novo", opts: ["Descansado em paz", "Ganhado a guerra", "Morrido socialmente de novo", "Virado heróis"] },
+        { q: "Qual é a maior ironia sobre a 'honra' das famílias de Antares?", a: "É baseada em segredos sujos", opts: ["É muito antiga", "É baseada em segredos sujos", "Todos são honestos", "O dinheiro compra tudo"] },
+        { q: "Quem representa a 'ordem' que reprime a verdade?", a: "O Coronel Tibúrcio", opts: ["O coveiro grevista", "O Coronel Tibúrcio", "O bêbado Pudim", "Dona Quitéria"] },
+        { q: "A 'Operação Borracha' no final do livro serve para:", a: "Apagar a memória coletiva", opts: ["Limpar a cidade", "Apagar a memória coletiva", "Consertar os túmulos", "Pagar os coveiros"] },
+        { q: "Por que os mortos não atacaram os vivos fisicamente?", a: "A arma deles era a palavra", opts: ["Estavam fracos", "A arma deles era a palavra", "Tinham medo", "Não tinham dentes"] },
+        { q: "Em uma ditadura, o que é mais perigoso que uma arma?", a: "Uma ideia livre", opts: ["Um tanque", "Uma ideia livre", "Um soldado", "Uma fronteira"] },
+        { q: "Se todos sabiam dos podres da cidade, por que foi um choque?", a: "Porque foi dito em público", opts: ["Ninguém sabia de nada", "Porque foi dito em público", "Porque eram mentiras", "Porque foi na rádio"] },
+        { q: "O advogado Cícero Branco defende a lei ou a elite?", a: "A elite, usando a lei", opts: ["A lei, cegamente", "A elite, usando a lei", "Os pobres", "Ninguém"] },
+        { q: "Qual personagem prova que 'a justiça é cega' em Antares?", a: "Nenhum, a justiça vê classe", opts: ["O Juiz", "Nenhum, a justiça vê classe", "O Delegado", "João Paz"] },
+        { q: "O que acontece se você ignora a história?", a: "Ela se repete", opts: ["Ela desaparece", "Ela se repete", "Você fica feliz", "O futuro muda"] },
+        { q: "Quantos vivos foram necessários para calar sete mortos?", a: "A cidade inteira", opts: ["Apenas o prefeito", "A cidade inteira", "O exército", "Ninguém conseguiu"] },
+        { q: "Qual a diferença entre o boato e a notícia em Antares?", a: "Quem controla a publicação", opts: ["A verdade", "Quem controla a publicação", "O preço do papel", "Não há diferença"] },
+        { q: "O realismo fantástico serve para mostrar que:", a: "A realidade é absurda", opts: ["Fantasmas existem", "A realidade é absurda", "Magia resolve tudo", "O Brasil não é sério"] },
+        { q: "A greve no livro é um ato de:", a: "Resistência civil", opts: ["Vandalismo puro", "Resistência civil", "Feriado prolongado", "Erro administrativo"] },
+        { q: "Quem é o verdadeiro 'fantasma' para a elite de Antares?", a: "O passado deles", opts: ["O comunismo", "O passado deles", "A pobreza", "A seca"] },
+        { q: "Se a liberdade é um direito, em Antares ela é:", a: "Um privilégio de classe", opts: ["Garantida a todos", "Um privilégio de classe", "Uma lenda urbana", "Proibida para todos"] },
+        { q: "O que matou João Paz?", a: "A tortura do Estado", opts: ["Uma doença rara", "A tortura do Estado", "Um acidente de trabalho", "Velhice prematura"] },
+        { q: "A família Vacariano e Campolargo são rivais, mas se unem para:", a: "Manter o poder", opts: ["Fazer caridade", "Manter o poder", "Construir a igreja", "Jogar cartas"] },
+        { q: "O que a mãe de Cícero Branco escondia?", a: "A origem do dinheiro", opts: ["Um amante", "A origem do dinheiro", "Uma doença", "Um crime antigo"] },
+        { q: "Por que Erotildes foi enterrada como indigente?", a: "Preconceito moral", opts: ["Falta de dinheiro", "Preconceito moral", "Ela pediu", "Erro do cartório"] }
+    ];
+    
+    function shuffleDeck(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    const scenarioTypes = [
+        { id: 'cemetery', name: "Cemitério Antigo", color: '#2b221a', groundColor: '#0f0e0c' },
+        { id: 'hall', name: "Corredores da Prefeitura", color: '#2e1d1d', groundColor: '#1a1010' },
+        { id: 'docks', name: "Cais do Porto", color: '#161b26', groundColor: '#080d14' }
+    ];
+    
+    const rageQuotes = [
+        "Você acha que sou tolo?!",
+        "Está tentando me enganar?",
+        "Quer sair por cima, é?",
+        "Acha que a burocracia é brincadeira?",
+        "Vou te ensinar a respeitar a ordem!"
+    ];
+
+    /* --- CLASSES --- */
+    class Entity {
+        constructor(x, y, size, color) {
+            this.x = x; this.y = y; this.size = size; this.color = color;
+        }
+        draw(ctx) {
+            ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    class Guard extends Entity {
+        constructor(x, y, isChaser = false) {
+            super(x, y, 15, '#556b2f'); // Militar green
+            this.angle = 0;
+            this.isChaser = isChaser;
+        }
+        draw(ctx) {
+            this.angle += 0.05;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            // Vision cone (Normal)
+            ctx.fillStyle = 'rgba(192, 57, 43, 0.15)'; // Reddish muted
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, 100, Math.sin(this.angle), Math.sin(this.angle) + 0.5);
+            ctx.fill();
+
+            // Body
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-10, -20, 20, 40); 
+            ctx.fillStyle = '#222'; // Helmet darker
+            ctx.fillRect(-12, -25, 24, 10);
+            
+            // Badge
+            ctx.fillStyle = '#c7b278';
+            ctx.fillRect(-2, -15, 4, 4);
+
+            ctx.restore();
+        }
+    }
+
+    class EliteChaser extends Entity {
+        constructor(x, y) {
+            super(x, y, 15, '#2c2c54'); // Dark purplish suit
+            this.speed = 3.2; // Slower than player (4)
+        }
+        draw(ctx) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            // Body (Suit)
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-10, -20, 20, 40);
+            // Tie
+            ctx.fillStyle = '#c0392b'; 
+            ctx.fillRect(-2, -15, 4, 15);
+            // Head
+            ctx.fillStyle = '#f1c40f'; // Goldish face/mask maybe?
+            ctx.beginPath(); ctx.arc(0, -25, 8, 0, Math.PI*2); ctx.fill();
+            // Top Hat
+            ctx.fillStyle = '#000';
+            ctx.fillRect(-10, -38, 20, 15);
+            ctx.fillRect(-14, -25, 28, 4);
+
+            ctx.restore();
+        }
+    }
+
+    /* --- WORLD MANAGEMENT --- */
+    let entities = []; 
+    let particles = [];
+    
+    function initHub() {
+        gameState.scene = 'hub';
+        gameState.player.x = 0;
+        gameState.player.y = 0;
+        entities = [];
+        particles = []; 
+        
+        if (gameState.questionDeck.length === 0) {
+            gameState.questionDeck = shuffleDeck([...masterQuestions]);
+        }
+        
+        ui.locTag.innerText = "Praça Matriz";
+        ui.locTag.style.borderColor = "#c7b278";
+
+        const rad = 250;
+        ghosts.forEach((g, i) => {
+            const ang = (i / ghosts.length) * Math.PI * 2;
+            entities.push({
+                type: 'ghost',
+                data: g,
+                x: Math.cos(ang) * rad,
+                y: Math.sin(ang) * rad
+            });
+        });
+
+        // Portal Logic
+        if (gameState.portalActive) {
+            entities.push({
+                type: 'portal',
+                x: 0, // Center of hub
+                y: 0,
+                size: 40,
+                color: '#8a2be2'
+            });
+        }
+
+        // Fog
+        for(let i=0; i<150; i++) {
+            particles.push({
+                x: (Math.random() - 0.5) * 2000,
+                y: (Math.random() - 0.5) * 2000,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3,
+                size: Math.random() * 30 + 20,
+                alpha: Math.random() * 0.08
+            });
+        }
+    }
+
+    function generateMission(ghost) {
+        gameState.currentMission = ghost;
+        gameState.scene = 'mission';
+        gameState.player.x = 0;
+        gameState.player.y = 400; 
+        
+        entities = [];
+        
+        const scen = scenarioTypes[Math.floor(Math.random() * scenarioTypes.length)];
+        gameState.currentScenario = scen;
+        ui.locTag.innerText = scen.name;
+        ui.locTag.style.borderColor = scen.color;
+        
+        // Target Clue
+        entities.push({
+            type: 'clue',
+            x: 0,
+            y: -400,
+            name: "Prova Incriminatória"
+        });
+
+        // Walls
+        for(let i=0; i<12; i++) {
+            const w = 60 + Math.random() * 80;
+            const h = 60 + Math.random() * 80;
+            let wx, wy;
+            let safe = false;
+            let attempts = 0;
+            
+            while(!safe && attempts < 50) {
+                wx = (Math.random() * 800) - 400;
+                wy = (Math.random() * 700) - 350;
+                const distStart = Math.sqrt(wx**2 + (wy - 400)**2);
+                const distClue = Math.sqrt(wx**2 + (wy + 400)**2);
+                if (distStart > 120 && distClue > 120) safe = true;
+                attempts++;
+            }
+
+            if (safe) {
+                entities.push({ type: 'wall', x: wx, y: wy, w: w, h: h });
+            }
+        }
+
+        // Guards
+        for(let i=0; i<3; i++) {
+            const gy = 200 - (i * 200);
+            let gx;
+            let validPosition = false;
+            let attempts = 0;
+
+            while (!validPosition && attempts < 50) {
+                gx = (Math.random() * 600) - 300;
+                validPosition = true;
+                for (const e of entities) {
+                    if (e.type === 'wall') {
+                        if (gx > e.x - e.w/2 - 30 && gx < e.x + e.w/2 + 30 &&
+                            gy > e.y - e.h/2 - 30 && gy < e.y + e.h/2 + 30) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                attempts++;
+            }
+            entities.push(new Guard(gx, gy));
+        }
+    }
+
+    // ... (Interrogation Logic kept same) ...
+    function initInterrogationMode() {
+        gameState.scene = 'interrogation';
+        gameState.interrogationStep = 0;
+        gameState.player.x = 0;
+        gameState.player.y = 200; 
+        ui.locTag.innerText = "SALA DE INTERROGATÓRIO";
+        ui.locTag.style.borderColor = "#c0392b";
+        gameState.currentScenario = { groundColor: '#1a1010' };
+        entities = [];
+        setTimeout(triggerInterrogationQuiz, 1000);
+    }
+    
+    function triggerInterrogationQuiz() {
+        gameState.interrogationActive = true;
+        gameState.interrogationTimer = 20;
+        ui.quiz.style.display = 'block';
+        ui.qTimerBar.style.display = 'block';
+        ui.qTitle.innerText = `Interrogatório ${gameState.interrogationStep + 1}/3`;
+        
+        if (gameState.questionDeck.length === 0) {
+             gameState.questionDeck = shuffleDeck([...masterQuestions]);
+        }
+        const q = gameState.questionDeck.pop() || masterQuestions[0]; // Fallback if deck empty
+        
+        ui.qText.innerText = q.q;
+        ui.qOpts.innerHTML = '';
+        const opts = [...q.opts].sort(() => Math.random() - 0.5);
+
+        opts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-option';
+            btn.innerText = opt;
+            btn.onclick = () => {
+                if (opt === q.a) {
+                    ui.quiz.style.display = 'none';
+                    gameState.interrogationActive = false;
+                    nextInterrogationStep();
+                } else {
+                    fullGameReset();
+                }
+            };
+            ui.qOpts.appendChild(btn);
+        });
+    }
+
+    function nextInterrogationStep() {
+        gameState.interrogationStep++;
+        if (gameState.interrogationStep >= 3) {
+            showNotification("LIBERDADE CONCEDIDA");
+            setTimeout(() => { switchScene(() => initHub()); }, 1500);
+        } else {
+            setTimeout(triggerInterrogationQuiz, 1000);
+        }
+    }
+
+    function fullGameReset() {
+        ui.quiz.style.display = 'none';
+        ui.gameOver.style.display = 'flex';
+        ui.gameOver.style.opacity = 1;
+    }
+
+    function triggerGuardRage() {
+        ui.quiz.style.display = 'none';
+        ui.dialogue.style.display = 'block';
+        ui.dName.innerText = "Guarda Furioso";
+        ui.dName.style.color = "var(--accent-alert)";
+        const quote = rageQuotes[Math.floor(Math.random() * rageQuotes.length)];
+        ui.dText.innerText = `"${quote}"`;
+        ui.dBtns.innerHTML = ''; 
+        setTimeout(() => {
+            ui.dialogue.style.display = 'none';
+            ui.punish.style.display = 'flex';
+            ui.punish.style.opacity = 1;
+        }, 2000);
+    }
+
+    window.startPunishmentAction = function() {
+        ui.punish.style.opacity = 0;
+        setTimeout(() => ui.punish.style.display = 'none', 500);
+        switchScene(() => initInterrogationMode());
+    }
+
+    /* --- TRANSITIONS --- */
+    function switchScene(cb) {
+        ui.transition.style.opacity = 1;
+        setTimeout(() => {
+            cb();
+            setTimeout(() => {
+                ui.transition.style.opacity = 0;
+            }, 500);
+        }, 800);
+    }
+
+    /* --- ESCAPE PHASE LOGIC --- */
+    function showEscapeIntro() {
+        ui.escapeIntro.style.display = 'flex';
+    }
+
+    window.startEscapeSequence = function() {
+        if (ui.countdown.style.display === 'flex') return; // Prevent double click
+
+        ui.escapeIntro.style.display = 'none';
+        ui.escapeFail.style.display = 'none'; // Ensure fail screen is hidden
+        
+        // Countdown
+        ui.countdown.style.display = 'flex';
+        let count = 3;
+        
+        const int = setInterval(() => {
+            ui.countdown.innerText = count;
+            if (count <= 0) {
+                clearInterval(int);
+                ui.countdown.innerText = 'JÁ!';
+                setTimeout(() => {
+                    ui.countdown.style.display = 'none';
+                    initEscapeRun();
+                }, 800);
+            }
+            count--;
+        }, 1000);
+    }
+
+    function initEscapeRun() {
+        // Clear any existing spawn timers
+        if (gameState.eliteSpawnTimer) clearTimeout(gameState.eliteSpawnTimer);
+
+        gameState.scene = 'escape';
+        gameState.player.x = 0;
+        gameState.player.y = 0;
+        gameState.running = true; // IMPORTANT: Re-enable game loop updates
+        
+        ui.locTag.innerText = "FUGA DA CIDADE";
+        ui.locTag.style.borderColor = "#8a2be2";
+        gameState.currentScenario = { groundColor: '#111' };
+
+        entities = [];
+        
+        // Target: Imprensa (Far away)
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 1500;
+        const pressX = Math.cos(angle) * dist;
+        const pressY = Math.sin(angle) * dist;
+        
+        entities.push({
+            type: 'press',
+            x: pressX,
+            y: pressY,
+            size: 40,
+            color: '#fff'
+        });
+
+        // Spawn Elite Members gradually
+        const spawnElite = () => {
+            if (gameState.scene !== 'escape') return;
+            const spawnAngle = Math.random() * Math.PI * 2;
+            const spawnDist = 800; // Spawn outside camera
+            const ex = gameState.player.x + Math.cos(spawnAngle) * spawnDist;
+            const ey = gameState.player.y + Math.sin(spawnAngle) * spawnDist;
+            
+            entities.push(new EliteChaser(ex, ey));
+            gameState.eliteSpawnTimer = setTimeout(spawnElite, 1500); // Spawn every 1.5s
+        };
+        spawnElite();
+    }
+
+    function handleEscapeFail() {
+        gameState.running = false; // Stop game loop immediately to prevent multiple hits
+        
+        // Stop spawning new elites
+        if (gameState.eliteSpawnTimer) clearTimeout(gameState.eliteSpawnTimer);
+
+        gameState.escapeLives--;
+        
+        if (gameState.escapeLives > 0) {
+            let msg = "";
+            if (gameState.escapeLives === 2) {
+                msg = "Você quase foi censurado, mas o destino decidiu lhe dar mais uma chance.";
+            } else if (gameState.escapeLives === 1) {
+                msg = "O destino está sendo bondoso, esta é sua ULTIMA chance!";
+            }
+            
+            ui.escapeFailMsg.innerText = msg;
+            ui.escapeFail.style.display = 'flex';
+        } else {
+            fullGameReset();
+        }
+    }
+
+    /* --- CHARACTER CREATION --- */
+    function initCharacterCreation() {
+        ui.charCreation.style.display = 'flex';
+        // Fade in
+        requestAnimationFrame(() => ui.charCreation.style.opacity = 1);
+
+        // Setup Riddle
+        setupRiddle();
+
+        // Setup Options
+        const skins = ['#dcb', '#d0a080', '#8d5524', '#c68642', '#e0ac69'];
+        const coats = ['#6d5e48', '#333', '#5d4037', '#1a237e', '#1b5e20'];
+        const hats = ['#2c241b', '#000', '#543b25', '#fff', '#4a148c'];
+        const scarfs = ['#3e352f', '#b71c1c', '#fbc02d', '#0288d1', '#fff'];
+
+        createColorOptions('opt-skin', skins, 'skin');
+        createColorOptions('opt-coat', coats, 'coat');
+        createColorOptions('opt-hat', hats, 'hat');
+        createColorOptions('opt-scarf', scarfs, 'scarf');
+
+        // Start Preview Loop
+        requestAnimationFrame(previewLoop);
+    }
+
+    function setupRiddle() {
+        const options = [
+            { text: "Um turista perdido", correct: false },
+            { text: "Professor Samuel", correct: true },
+            { text: "Um gaucho", correct: false },
+            { text: "Capitão Rodrigo", correct: false }
+        ];
+        
+        ui.riddleList.innerHTML = '';
+        options.sort(() => Math.random() - 0.5).forEach(opt => {
+            const btn = document.createElement('div');
+            btn.className = 'riddle-option';
+            btn.innerText = opt.text;
+            btn.onclick = () => {
+                if (opt.correct) {
+                    btn.classList.add('correct');
+                    ui.cuiaReward.style.display = 'block';
+                    // Disable all others
+                    Array.from(ui.riddleList.children).forEach(c => c.style.pointerEvents = 'none');
+                } else {
+                    btn.classList.add('wrong');
+                }
+            };
+            ui.riddleList.appendChild(btn);
+        });
+    }
+
+    window.toggleCuia = function() {
+        gameState.playerAppearance.cuia = !gameState.playerAppearance.cuia;
+        if (gameState.playerAppearance.cuia) {
+            ui.cuiaIcon.classList.add('equipped');
+        } else {
+            ui.cuiaIcon.classList.remove('equipped');
+        }
+    }
+
+    function createColorOptions(id, colors, type) {
+        const container = document.getElementById(id);
+        container.innerHTML = '';
+        colors.forEach(c => {
+            const btn = document.createElement('div');
+            btn.className = 'color-btn';
+            btn.style.backgroundColor = c;
+            if (gameState.playerAppearance[type] === c) btn.classList.add('selected');
+            
+            btn.onclick = () => {
+                gameState.playerAppearance[type] = c;
+                // Update visuals
+                Array.from(container.children).forEach(child => child.classList.remove('selected'));
+                btn.classList.add('selected');
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function previewLoop() {
+        if (ui.charCreation.style.display === 'none') return;
+        
+        const cvs = document.getElementById('char-preview-canvas');
+        const cx = cvs.getContext('2d');
+        cx.clearRect(0, 0, cvs.width, cvs.height);
+        
+        // Background
+        cx.fillStyle = '#111';
+        cx.fillRect(0,0, cvs.width, cvs.height);
+
+        // Draw BIG Character
+        cx.save();
+        cx.translate(cvs.width/2, cvs.height/2 + 80);
+        renderCharacter(cx, 0, 0, 4.5, gameState.playerAppearance);
+        cx.restore();
+
+        requestAnimationFrame(previewLoop);
+    }
+
+    // Refactored Draw Function
+    function renderCharacter(c, x, y, scale, app) {
+        c.save();
+        c.translate(x, y);
+        c.scale(scale, scale);
+
+        // Shadow
+        c.fillStyle = 'rgba(0,0,0,0.6)'; c.beginPath(); c.ellipse(0, 15, 12, 5, 0, 0, Math.PI * 2); c.fill();
+        
+        // Body (Coat)
+        c.fillStyle = app.coat; c.fillRect(-10, -25, 20, 35);
+        // Scarf/Collar
+        c.fillStyle = app.scarf; c.fillRect(-10, -25, 20, 8);
+        
+        // Cuia (If equipped)
+        if (app.cuia) {
+            c.save();
+            // ALTERADO: X = 0 para centralizar no corpo (antes era 2)
+            c.translate(0, -4); 
+
+            // 1. O Corpo da Cuia (Porongo)
+            let grad = c.createRadialGradient(0, -1, 1, 0, 0, 7);
+            grad.addColorStop(0, '#eacda3'); 
+            grad.addColorStop(0.6, '#d6a469'); 
+            grad.addColorStop(1, '#8c5e35'); 
+            c.fillStyle = grad;
+
+            c.beginPath();
+            c.ellipse(0, 2, 6.5, 6, 0, 0, Math.PI * 2);
+            c.fill();
+
+            // 2. A Virola (Borda metálica)
+            c.strokeStyle = '#d3d3d3'; 
+            c.lineWidth = 1.5;
+            c.beginPath();
+            c.ellipse(0, -3, 5.5, 1.5, 0, Math.PI, Math.PI * 2);
+            c.stroke();
+
+            // 3. A Bomba
+            c.strokeStyle = "#e0e0e0"; 
+            c.lineWidth = 2.5; 
+            c.lineCap = 'round';
+            c.beginPath();
+            c.moveTo(2, -2); 
+            c.lineTo(7, -10); 
+            c.stroke();
+
+            // Bojo da bomba
+            c.fillStyle = "#a9a9a9";
+            c.beginPath();
+            c.arc(2, 0, 2, 0, Math.PI*2);
+            c.fill();
+
+            // Erva-mate
+            c.fillStyle = "#384f26";
+            c.beginPath();
+            c.ellipse(0, -3, 5, 1.2, 0, 0, Math.PI * 2);
+            c.fill();
+
+            c.restore();
+        }
+
+        // Head
+        c.fillStyle = app.skin; c.beginPath(); c.arc(0, -32, 9, 0, Math.PI * 2); c.fill();
+        
+        // Hat
+        c.fillStyle = app.hat; 
+        c.beginPath();
+        c.ellipse(0, -36, 14, 4, 0, 0, Math.PI*2); // Brim
+        c.fill();
+        c.fillRect(-9, -44, 18, 10); // Top
+        
+        c.restore();
+    }
+
+    window.finishCreation = function() {
+        ui.charCreation.style.opacity = 0;
+        setTimeout(() => {
+            ui.charCreation.style.display = 'none';
+            showTutorial();
+        }, 500);
+    }
+
+    /* --- TUTORIAL LOGIC (UPDATED) --- */
+    function showTutorial() {
+        ui.tutorial.style.display = 'flex';
+        requestAnimationFrame(() => ui.tutorial.style.opacity = 1);
+
+        // Wait for input
+        const startGameListener = (e) => {
+            const k = e.key;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(k.toLowerCase())) {
+                window.removeEventListener('keydown', startGameListener);
+                launchGame();
+            }
+        };
+        window.addEventListener('keydown', startGameListener);
+    }
+
+    // New function to actually launch the game from tutorial
+    window.launchGame = function() {
+        ui.tutorial.style.opacity = 0;
+        setTimeout(() => {
+            ui.tutorial.style.display = 'none';
+            gameState.running = true;
+            initHub();
+            requestAnimationFrame(loop);
+        }, 800);
+    }
+
+    /* --- GAME LOGIC --- */
+    // ... (Interactions Logic same as before) ...
+    function checkInteractions() {
+        // Updated to include escape screens in the block list
+        if (ui.dialogue.style.display === 'block' || 
+            ui.punish.style.display === 'flex' || 
+            gameState.scene === 'interrogation' || 
+            ui.gameOver.style.display === 'flex' ||
+            ui.escapeIntro.style.display === 'flex' ||
+            ui.escapeFail.style.display === 'flex' ||
+            ui.countdown.style.display === 'flex') {
+            return;
+        }
+
+        const p = gameState.player;
+        let nearest = null; let dist = 999;
+        entities.forEach(e => {
+            if (e.type === 'wall') return; 
+            const d = Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2);
+            if (d < 60 && d < dist) { nearest = e; dist = d; }
+        });
+        if (gameState.scene === 'hub') {
+            if (nearest && nearest.type === 'ghost') interactGhost(nearest);
+            if (nearest && nearest.type === 'portal') showEscapeIntro();
+        } else if (gameState.scene === 'mission') {
+            if (nearest && nearest instanceof Guard) { interactGuard(nearest); } 
+            else if (nearest && nearest.type === 'clue') {
+                if (entities.some(e => e instanceof Guard)) { showNotification("Elimine os guardas primeiro!"); return; }
+                interactClue(nearest);
+            }
+        }
+    }
+
+    function interactGhost(e) {
+        if (e.data.solved) return;
+        ui.dialogue.style.display = 'block';
+        ui.dName.innerText = e.data.name;
+        ui.dText.innerText = `Tenho uma pista vital sobre ${e.data.desc}. Mas ela está escondida longe daqui.`;
+        ui.dBtns.innerHTML = '';
+        const btnGo = document.createElement('button'); btnGo.className = 'primary'; btnGo.innerText = "Aceitar Missão";
+        btnGo.onclick = () => { ui.dialogue.style.display = 'none'; switchScene(() => generateMission(e.data)); };
+        const btnCancel = document.createElement('button'); btnCancel.innerText = "Agora não";
+        btnCancel.onclick = () => ui.dialogue.style.display = 'none';
+        ui.dBtns.append(btnCancel, btnGo);
+    }
+
+    function interactGuard(guard) {
+        if (ui.dialogue.style.display === 'block' || ui.punish.style.display === 'flex') return;
+        if (ui.quiz.style.display === 'block') { triggerGuardRage(); return; }
+        ui.qTimerBar.style.display = 'none'; ui.quiz.style.display = 'block';
+        ui.qTitle.innerText = "Guarda da Censura";
+        
+        // FIX: Ensure deck is replenished if empty
+        if (gameState.questionDeck.length === 0) gameState.questionDeck = shuffleDeck([...masterQuestions]);
+        
+        const q = gameState.questionDeck.pop();
+        ui.qText.innerText = q.q; ui.qOpts.innerHTML = '';
+        const opts = [...q.opts].sort(() => Math.random() - 0.5);
+        opts.forEach(opt => {
+            const btn = document.createElement('button'); btn.className = 'quiz-option'; btn.innerText = opt;
+            btn.onclick = () => {
+                if (opt === q.a) { showNotification("Acesso Liberado"); ui.quiz.style.display = 'none'; entities = entities.filter(e => e !== guard); } 
+                else { failMission(); }
+            }; ui.qOpts.appendChild(btn);
+        });
+    }
+
+    function interactClue(clue) {
+        if (gameState.currentMission.solved) return;
+        gameState.evidence++; gameState.currentMission.solved = true;
+        gameState.collectedSnippets.push(`A prova de ${gameState.currentMission.name} foi recuperada.`);
+        ghosts.find(g => g.id === gameState.currentMission.id).solved = true;
+        updateProgress(); 
+        
+        if (gameState.evidence >= gameState.totalEvidence) {
+            gameState.portalActive = true;
+            showNotification("O PORTAL DE FUGA ABRIU NA PRAÇA!");
+            switchScene(() => initHub());
+        } else {
+            showNotification("EVIDÊNCIA COLETADA!"); 
+            switchScene(() => initHub());
+        }
+    }
+
+    function failMission() { ui.quiz.style.display = 'none'; ui.fail.style.display = 'flex'; ui.fail.style.opacity = 1; }
+    window.retryMission = function() { ui.fail.style.opacity = 0; setTimeout(() => ui.fail.style.display = 'none', 500); switchScene(() => generateMission(gameState.currentMission)); }
+    function updateProgress() { const pct = (gameState.evidence / gameState.totalEvidence) * 100; ui.progress.style.width = pct + "%"; }
+    function showNotification(text) { ui.notif.innerText = text; ui.notif.style.opacity = 1; setTimeout(() => ui.notif.style.opacity = 0, 2000); }
+    function showEnding() { gameState.running = false; ui.ending.style.display = 'flex'; ui.ending.style.opacity = 1; let html = "<ul>"; gameState.collectedSnippets.forEach(s => html += `<li>${s}</li>`); html += "</ul><p>O cerco acabou. A verdade prevaleceu.</p>"; document.getElementById('newspaper-content').innerHTML = html; }
+
+    /* --- INPUT --- */
+    window.addEventListener('keydown', e => { keys[e.key] = true; if(e.key.toLowerCase() === 'e') checkInteractions(); });
+    window.addEventListener('keyup', e => keys[e.key] = false);
+    ui.actionBtn.addEventListener('click', (e) => { e.preventDefault(); checkInteractions(); });
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('touchend', () => { keys['ArrowUp'] = keys['ArrowDown'] = keys['ArrowLeft'] = keys['ArrowRight'] = false; });
+    function handleTouch(e) { const t = e.touches[0]; const cx = width / 2; const cy = height / 2; keys['ArrowUp'] = t.clientY < cy - 50; keys['ArrowDown'] = t.clientY > cy + 50; keys['ArrowLeft'] = t.clientX < cx - 50; keys['ArrowRight'] = t.clientX > cx + 50; }
+
+    /* --- MAIN LOOP --- */
+    let lastTime = 0;
+    function update(timestamp) {
+        if (!gameState.running) return;
+        const dt = (timestamp - lastTime) / 1000; lastTime = timestamp;
+        if (gameState.scene === 'interrogation') {
+            if (gameState.interrogationActive) {
+                gameState.interrogationTimer -= dt;
+                const pct = Math.max(0, (gameState.interrogationTimer / 20) * 100); ui.qTimerFill.style.width = pct + "%";
+                if (gameState.interrogationTimer <= 0) fullGameReset();
+            }
+            gameState.camera.x = 0; gameState.camera.y = 200; return; 
+        }
+        
+        // Escape Scene Logic
+        if (gameState.scene === 'escape') {
+            // Check collision with Press
+            entities.forEach(e => {
+                if (e.type === 'press') {
+                    const d = Math.sqrt((gameState.player.x - e.x)**2 + (gameState.player.y - e.y)**2);
+                    if (d < 50) showEnding();
+                }
+                // Check collision with Elites
+                if (e instanceof EliteChaser) {
+                    // Move elite towards player
+                    const dx = gameState.player.x - e.x;
+                    const dy = gameState.player.y - e.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 30) {
+                        // CHANGED: Call handleEscapeFail instead of fullGameReset
+                        handleEscapeFail();
+                    } else {
+                        e.x += (dx/dist) * e.speed;
+                        e.y += (dy/dist) * e.speed;
+                    }
+                }
+            });
+        }
+
+        const canMove = ui.dialogue.style.display !== 'block' && ui.quiz.style.display !== 'block';
+        const p = gameState.player; p.velX = 0; p.velY = 0;
+        if (canMove) {
+            if (keys['ArrowUp'] || keys['w']) p.velY = -p.speed;
+            if (keys['ArrowDown'] || keys['s']) p.velY = p.speed;
+            if (keys['ArrowLeft'] || keys['a']) p.velX = -p.speed;
+            if (keys['ArrowRight'] || keys['d']) p.velX = p.speed;
+        }
+        if (p.velX !== 0 || p.velY !== 0) {
+            if (Date.now() - gameState.lastFootprintTime > 150) {
+                gameState.footprints.push({ x: p.x, y: p.y, time: Date.now(), angle: Math.atan2(p.velY, p.velX) });
+                gameState.lastFootprintTime = Date.now();
+            }
+        }
+        gameState.footprints = gameState.footprints.filter(fp => Date.now() - fp.time < 3000);
+        let nextX = p.x + p.velX; let nextY = p.y + p.velY;
+        if (gameState.scene === 'mission') { if (Math.abs(nextX) > 600) nextX = p.x; if (Math.abs(nextY) > 600) nextY = p.y; }
+        entities.forEach(e => {
+            if (e.type === 'wall') {
+                if (nextX > e.x - e.w/2 - 10 && nextX < e.x + e.w/2 + 10 && nextY > e.y - e.h/2 - 10 && nextY < e.y + e.h/2 + 10) { nextX = p.x; nextY = p.y; }
+            }
+        });
+        p.x = nextX; p.y = nextY;
+        gameState.camera.x += (p.x - width/2 - gameState.camera.x) * 0.1; gameState.camera.y += (p.y - height/2 - gameState.camera.y) * 0.1;
+        particles.forEach(pt => {
+            pt.x += pt.vx; pt.y += pt.vy;
+            if (Math.abs(pt.x - p.x) > 1000) pt.x = p.x + (Math.random()-0.5)*1000;
+            if (Math.abs(pt.y - p.y) > 1000) pt.y = p.y + (Math.random()-0.5)*1000;
+        });
+        
+        let nearEntity = null;
+        if (gameState.scene !== 'interrogation' && gameState.scene !== 'escape') {
+            entities.forEach(e => { if(e.type === 'wall') return; const d = Math.sqrt((p.x-e.x)**2 + (p.y-e.y)**2); if(d < 60) nearEntity = e; });
+            if (nearEntity) {
+                ui.actionBtn.style.display = 'flex';
+                if (nearEntity.type === 'portal') {
+                    ui.actionBtn.style.borderColor = '#8a2be2'; ui.actionBtn.innerText = "EXIT";
+                }
+                else if (nearEntity.type === 'clue' && entities.some(e => e instanceof Guard)) { ui.actionBtn.style.borderColor = '#c0392b'; ui.actionBtn.innerText = "BLOQ"; } 
+                else { ui.actionBtn.style.borderColor = '#c7b278'; ui.actionBtn.innerText = "!"; }
+            } else { ui.actionBtn.style.display = 'none'; }
+        } else {
+            ui.actionBtn.style.display = 'none';
+        }
+    }
+
+    function draw() {
+        const bg = gameState.scene === 'hub' ? '#12100e' : gameState.currentScenario.groundColor;
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+        ctx.save(); ctx.translate(-gameState.camera.x, -gameState.camera.y);
+        ctx.fillStyle = 'rgba(50, 40, 30, 0.1)';
+        const gridSize = 80; const startX = Math.floor(gameState.camera.x / gridSize) * gridSize; const startY = Math.floor(gameState.camera.y / gridSize) * gridSize;
+        if (gameState.scene === 'hub') {
+             for(let x = startX; x < startX + width + gridSize; x += gridSize) {
+                for(let y = startY; y < startY + height + gridSize; y += gridSize) { if (((x+y)/gridSize) % 2 === 0) ctx.fillRect(x, y, gridSize, gridSize); }
+            }
+        } else {
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 2;
+            for(let x = startX; x < startX + width + gridSize; x += 40) { ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, startY + height + gridSize); ctx.stroke(); }
+        }
+        if (gameState.scene === 'hub') { ctx.fillStyle = '#1e1a17'; ctx.beginPath(); ctx.arc(0,0,80,0,Math.PI*2); ctx.fill(); ctx.strokeStyle = '#3e352f'; ctx.stroke(); }
+        
+        // Direction to Press in Escape Mode
+        if (gameState.scene === 'escape') {
+            const press = entities.find(e => e.type === 'press');
+            if (press) {
+                const angle = Math.atan2(press.y - gameState.player.y, press.x - gameState.player.x);
+                ctx.save(); ctx.translate(gameState.player.x, gameState.player.y); ctx.rotate(angle);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.beginPath(); ctx.moveTo(50, 0); ctx.lineTo(30, 10); ctx.lineTo(30, -10); ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        gameState.footprints.forEach(fp => {
+            const age = Date.now() - fp.time; const alpha = 1 - (age / 3000);
+            ctx.save(); ctx.translate(fp.x, fp.y); ctx.rotate(fp.angle); ctx.fillStyle = `rgba(20, 20, 20, ${alpha * 0.5})`; 
+            ctx.beginPath(); ctx.ellipse(0, 5, 4, 8, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        });
+        particles.forEach(pt => { ctx.fillStyle = `rgba(180, 170, 150, ${pt.alpha})`; ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI*2); ctx.fill(); });
+        const drawList = [...entities, { type: 'player', x: gameState.player.x, y: gameState.player.y }];
+        drawList.sort((a,b) => a.y - b.y);
+        drawList.forEach(e => {
+            if (e.type === 'player') { renderCharacter(ctx, e.x, e.y, 1, gameState.playerAppearance); } 
+            else if (e.type === 'ghost') { drawGhost(e.x, e.y, e.data); } 
+            else if (e instanceof Guard) { e.draw(ctx); } 
+            else if (e instanceof EliteChaser) { e.draw(ctx); }
+            else if (e.type === 'wall') {
+                ctx.fillStyle = '#2c241b'; ctx.fillRect(e.x - e.w/2, e.y - e.h/2, e.w, e.h);
+                ctx.strokeStyle = '#4a3d31'; ctx.lineWidth = 2; ctx.strokeRect(e.x - e.w/2, e.y - e.h/2, e.w, e.h);
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(e.x - e.w/2 + 5, e.y + e.h/2, e.w, 10);
+            } else if (e.type === 'clue') {
+                const isLocked = entities.some(ent => ent instanceof Guard);
+                ctx.fillStyle = isLocked ? '#5d4037' : '#d4c59a'; 
+                ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(Date.now() / 800); ctx.fillRect(-12, -8, 24, 16);
+                ctx.beginPath(); ctx.moveTo(-12,-8); ctx.lineTo(0, 0); ctx.lineTo(12, -8); ctx.strokeStyle = '#3e2723'; ctx.stroke();
+                if(isLocked) { ctx.fillStyle = '#8e24aa'; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill(); } 
+                ctx.restore(); ctx.shadowBlur = 15; ctx.shadowColor = isLocked ? 'rgba(0,0,0,0.5)' : '#d4c59a';
+            } else if (e.type === 'portal') {
+                ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(Date.now() / 1000);
+                const grad = ctx.createRadialGradient(0,0,5,0,0,30); grad.addColorStop(0, '#fff'); grad.addColorStop(1, e.color);
+                ctx.fillStyle = grad; ctx.beginPath(); 
+                for(let i=0; i<5; i++) { ctx.rotate(Math.PI*2/5); ctx.lineTo(0, -30); ctx.lineTo(10, -10); }
+                ctx.fill(); ctx.restore();
+            } else if (e.type === 'press') {
+                ctx.fillStyle = '#fff';
+                ctx.save(); ctx.translate(e.x, e.y);
+                ctx.fillRect(-20, -15, 40, 30); // Building shape
+                ctx.fillStyle = '#000'; ctx.font = "10px Arial"; ctx.fillText("IMPRENSA", -25, -20);
+                ctx.restore();
+            }
+        });
+        ctx.restore();
+        if (gameState.scene === 'mission') {
+            const p = gameState.player; const sx = p.x - gameState.camera.x; const sy = p.y - gameState.camera.y;
+            const grad = ctx.createRadialGradient(sx, sy, 60, sx, sy, 600);
+            grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(0.2, 'rgba(0,0,0,0.5)'); grad.addColorStop(1, 'rgba(0,0,0,0.98)');
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, width, height);
+        }
+    }
+
+    function drawGhost(x, y, data) {
+        ctx.save(); const float = Math.sin(Date.now() / 500) * 5; ctx.translate(x, y + float);
+        const color = data.solved ? '#444' : '#a0d8ef'; ctx.shadowBlur = 25; ctx.shadowColor = color; ctx.fillStyle = color;
+        ctx.globalAlpha = data.solved ? 0.3 : 0.8;
+        ctx.beginPath();
+        if (data.type === 'quiteria' || data.type === 'erotildes') { ctx.moveTo(0, -50); ctx.quadraticCurveTo(-20, -20, -20, 20); ctx.lineTo(20, 20); ctx.quadraticCurveTo(20, -20, 0, -50); } 
+        else if (data.type === 'pudim' || data.type === 'barcelona') { ctx.moveTo(0, -45); ctx.lineTo(-15, 15); ctx.lineTo(15, 20); ctx.lineTo(15, -10); } 
+        else { ctx.ellipse(0, -10, 15, 30, 0, 0, Math.PI * 2); }
+        ctx.fill(); ctx.globalAlpha = 1;
+        if (!data.solved) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-5, -35, 2, 0, Math.PI*2); ctx.arc(5, -35, 2, 0, Math.PI*2); ctx.fill(); }
+        if (data.solved) { ctx.fillStyle = '#c7b278'; ctx.font = '20px Arial'; ctx.textAlign = 'center'; ctx.fillText('✓', 0, -50); }
+        ctx.restore();
+    }
+
+    function loop(timestamp) {
+        update(timestamp);
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // Modified to open Character Creation instead of Tutorial directly
+    window.startGame = function() {
+        ui.intro.style.opacity = 0;
+        setTimeout(() => {
+            ui.intro.style.display = 'none';
+            initCharacterCreation(); // NEW FLOW
+        }, 800);
+    }
+</script>
+</body>
+</html>
